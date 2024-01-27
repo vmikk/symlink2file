@@ -24,7 +24,7 @@ func main() {
     targetDir := flag.Arg(0)
 
     // Backup directory setup
-    backupDir := filepath.Join(targetDir, "symlink_backup_"+time.Now().Format("20060102150405"))
+    backupDir := filepath.Join(targetDir, "symlink_backup_"+time.Now().Format("0601021504"))
     if !*noBackup {
         if err := os.MkdirAll(backupDir, 0755); err != nil {
             fmt.Println("Error creating backup directory:", err)

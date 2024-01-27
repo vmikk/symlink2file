@@ -63,6 +63,19 @@ func main() {
                 }
             }
 
+            // Get the original file's stat to replicate metadata later
+            originalFileInfo, err := os.Stat(resolvedPath)
+            if err != nil {
+                fmt.Println("Error getting file info:", resolvedPath, err)
+                return nil
+            }
+
+            // Remove the symlink
+            if err := os.Remove(path); err != nil {
+                fmt.Println("Error removing symlink:", path, err)
+                return nil
+            }
+
             // Open the target file for reading
             inputFile, err := os.Open(resolvedPath)
             if err != nil {
@@ -71,34 +84,17 @@ func main() {
             }
             defer inputFile.Close()
 
-            // Get the original file's stat to replicate metadata later
-            originalFileInfo, err := inputFile.Stat()
+            // Create a new file at the original symlink path
+            outputFile, err := os.Create(path)
             if err != nil {
-                fmt.Println("Error getting file info:", resolvedPath, err)
+                fmt.Println("Error creating file:", path, err)
                 return nil
             }
+            defer outputFile.Close()
 
-            // Create a temporary file
-            tempFile, err := os.CreateTemp("", "symlink2file_")
-            if err != nil {
-                fmt.Println("Error creating temporary file:", err)
-                return nil
-            }
-            defer tempFile.Close()
-
-            // Copy the content to the temporary file
-            if _, err = io.Copy(tempFile, inputFile); err != nil {
-                fmt.Println("Error copying to temporary file:", err)
-                return nil
-            }
-
-            // Close both files to ensure all data is written
-            inputFile.Close()
-            tempFile.Close()
-
-            // Rename the temporary file to the original symlink path
-            if err := os.Rename(tempFile.Name(), path); err != nil {
-                fmt.Println("Error renaming temporary file:", err)
+            // Copy the content to the new file
+            if _, err = io.Copy(outputFile, inputFile); err != nil {
+                fmt.Println("Error copying to new file:", err)
                 return nil
             }
 
@@ -128,4 +124,3 @@ func main() {
 
     fmt.Println("Symlink replacement complete.")
 }
-

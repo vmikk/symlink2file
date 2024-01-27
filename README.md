@@ -42,3 +42,25 @@ go build
 
 This will create an executable named `symlink2file` in the current directory.
 
+
+## Usage
+
+Basic usage:
+```
+./symlink2file [OPTIONS] <directory>
+```
+
+Options:
+- `--no-backup`: Disable backup of original symlinks;
+- `--broken-symlinks=keep|delete`: Define how to handle broken symlinks (default: `keep`);
+- `--no-recurse`: Disable recursive traversal of subdirectories.
+
+Example:
+```
+./symlink2file --no-backup --broken-symlinks=delete ./path/to/directory
+```
+
+This command will replace all symlinks in `./path/to/directory` with their target files, 
+without creating backups, 
+and will delete any broken symlinks found.
+

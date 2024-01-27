@@ -1,3 +1,5 @@
+[![Go](https://github.com/vmikk/symlink2file/actions/workflows/go.yml/badge.svg)](https://github.com/vmikk/symlink2file/actions/workflows/go.yml)
+
 # symlink2file
 
 ## Overview

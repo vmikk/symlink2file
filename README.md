@@ -29,3 +29,16 @@ simplifying file structures, or preparing data for environments that do not supp
 chmod +x symlink2file
 ```
 
+### Option 2: Compile from source
+
+1. Ensure you have [Go](https://go.dev/) (`>=1.21`) installed on your system;
+2. Clone the repository and compile the source code:
+
+```
+git clone https://github.com/vmikk/symlink2file
+cd symlink2file
+go build
+```
+
+This will create an executable named `symlink2file` in the current directory.
+

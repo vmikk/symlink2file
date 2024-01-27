@@ -16,3 +16,16 @@ simplifying file structures, or preparing data for environments that do not supp
 - Broken symlink handling: Offers configurable behavior for dealing with broken symlinks - either keep them as-is or delete them.
 - Preservation of file attributes: Attempts to preserve the original file attributes (like creation time) where possible.
 
+## Installation
+
+`symlink2file` can be installed either by downloading a pre-compiled binary or by compiling the source code manually. 
+
+### Option 1: Download Pre-compiled Binary
+
+1. Go to the [Releases](https://github.com/vmikk/symlink2file/releases) page;
+2. Download the binary;
+3. Make the binary executable:
+```
+chmod +x symlink2file
+```
+

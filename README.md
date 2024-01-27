@@ -68,6 +68,6 @@ and will delete any broken symlinks found.
 
 ## Note: Experimental project
 
-Please be aware that this is an experimental project, developed primarily for testing purposes and as a means to explore and understand the capabilities of the Go programming language.
-
-Therefore, the code might not cover all edge cases or be suitable for production use. Users are encouraged to use this tool in non-critical environments and to thoroughly test it in their specific use cases.
+> [!CAUTION]
+> Please be aware that this is an experimental project, developed primarily for testing purposes and as a means to explore and understand the capabilities of the Go programming language.  
+> Therefore, the code might not cover all edge cases or be suitable for production use. Users are encouraged to use this tool in non-critical environments and to thoroughly test it in their specific use cases.  

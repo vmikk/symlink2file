@@ -28,7 +28,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Symlink replacement complete.")
+	// Count the number of processed symlinks
+	count := 0
+	for _, processed := range processedSymlinks {
+		if processed {
+			count++
+		}
+	}
+
+	fmt.Printf("Symlink replacement complete. Processed %d symlinks.\n", count)
 }
 
 // Parse command-line flags and return their values

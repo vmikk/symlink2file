@@ -123,6 +123,13 @@ func processPath(path, backupDir string, noBackup *bool, brokenSymlinks string, 
 	}
 
 	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil && !*noBackup && brokenSymlinks == "delete" {
+		// Backup broken symlink before deleting
+		if backupErr := backupSymlink(path, backupDir, processedSymlinks); backupErr != nil {
+			return fmt.Errorf("failed to backup broken symlink %q: %w", path, backupErr)
+		}
+	}
+
 	if err != nil {
 		if brokenSymlinks == "delete" {
 			if removeErr := os.Remove(path); removeErr != nil {

@@ -9,6 +9,18 @@ import (
 	"time"
 )
 
+// Colors for the verbose output
+const (
+	redColor   = "\033[31m"
+	greenColor = "\033[32m"
+	blueColor  = "\033[34m"
+	resetColor = "\033[0m"
+)
+
+func coloredPrintf(color string, format string, a ...interface{}) {
+	fmt.Printf(color+format+resetColor, a...)
+}
+
 // The entry point of the program
 // - parse command-line flags
 // - set up the backup directory,
@@ -16,15 +28,15 @@ import (
 func main() {
 
 	noBackup, brokenSymlinks, noRecurse, targetDir := parseFlags()
-	backupDir, err := setupBackupDir(targetDir, noBackup) // Handle both returned values
+	backupDir, err := setupBackupDir(targetDir, noBackup)
 	if err != nil {
-		fmt.Printf("Error setting up backup directory: %v\n", err)
+		coloredPrintf(redColor, "Error setting up backup directory: %v\n", err)
 		os.Exit(1)
 	}
 
 	processedSymlinks := make(map[string]bool)
 	if err := processSymlinks(targetDir, backupDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
-		fmt.Println("Error processing symlinks:", err)
+		coloredPrintf(redColor, "Error processing symlinks:", err)
 		os.Exit(1)
 	}
 
@@ -36,7 +48,7 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Symlink replacement complete. Processed %d symlinks.\n", count)
+	coloredPrintf(greenColor, "Symlink replacement complete. Processed %d symlinks.\n", count)
 }
 
 // Parse command-line flags and return their values
@@ -49,7 +61,7 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 
 	// Check for required non-flag argument (target directory)
 	if flag.NArg() != 1 {
-		fmt.Println("Usage: symlink2file [OPTIONS] <directory>")
+		fmt.Println("Usage: " + blueColor + "symlink2file" + resetColor + " [OPTIONS] <directory>")
 		os.Exit(1)
 	}
 	targetDir = flag.Arg(0)

@@ -138,9 +138,9 @@ func processPath(path, targetDir string, noBackup *bool, brokenSymlinks string, 
 			if removeErr := os.Remove(path); removeErr != nil {
 				return fmt.Errorf("error removing broken symlink %q: %w", path, removeErr)
 			}
-			fmt.Println("Removed broken symlink:", path)
+			coloredPrintf(redColor, "Removed broken symlink: "+resetColor+"%s\n", path)
 		} else {
-			fmt.Println("Keeping broken symlink:", path)
+			coloredPrintf(redColor, "Keeping broken symlink: "+resetColor+"%s\n", path)
 		}
 		return nil
 	}

@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
+	"strings"
 )
 
 // Colors for the verbose output
@@ -28,14 +28,9 @@ func coloredPrintf(color string, format string, a ...interface{}) {
 func main() {
 
 	noBackup, brokenSymlinks, noRecurse, targetDir := parseFlags()
-	backupDir, err := setupBackupDir(targetDir, noBackup)
-	if err != nil {
-		coloredPrintf(redColor, "Error setting up backup directory: %v\n", err)
-		os.Exit(1)
-	}
 
 	processedSymlinks := make(map[string]bool)
-	if err := processSymlinks(targetDir, backupDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
+	if err := processSymlinks(targetDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
 		coloredPrintf(redColor, "Error processing symlinks:", err)
 		os.Exit(1)
 	}
@@ -69,38 +64,21 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 	return noBackup, brokenSymlinks, noRecurse, targetDir
 }
 
-// Create the backup directory if needed
-func setupBackupDir(targetDir string, noBackup *bool) (backupDir string, err error) {
-	// Backup directory is only needed if backups are enabled
-	if !*noBackup {
-		backupDir = filepath.Join(targetDir, "symlink_backup_"+time.Now().Format("060102150405"))
-
-		// Create the backup directory with appropriate permissions
-		if err = os.MkdirAll(backupDir, 0755); err != nil {
-			return "", fmt.Errorf("error creating backup directory: %w", err)
-		}
-	}
-
-	// Return the backup directory path (empty if no backup)
-	return backupDir, nil
-}
-
 // Process the symlinks in the given directory
-func processSymlinks(targetDir, backupDir string, noBackup, noRecurse *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
-
+func processSymlinks(targetDir string, noBackup, noRecurse *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
 	walkFunc := func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error accessing path %q: %w", path, err)
 		}
 
-		// Skip backup directory and handle no-recurse logic
-		if path == backupDir || (info.IsDir() && *noRecurse && path != targetDir) {
+		// Skip .symlink2file directory and handle no-recurse logic
+		if strings.Contains(path, ".symlink2file") || (info.IsDir() && *noRecurse && path != targetDir) {
 			return filepath.SkipDir
 		}
 
 		// Process only symlinks
 		if info.Type()&os.ModeSymlink != 0 {
-			return processPath(path, backupDir, noBackup, brokenSymlinks, processedSymlinks)
+			return processPath(path, targetDir, noBackup, brokenSymlinks, processedSymlinks)
 		}
 
 		return nil
@@ -109,12 +87,37 @@ func processSymlinks(targetDir, backupDir string, noBackup, noRecurse *bool, bro
 	return filepath.WalkDir(targetDir, walkFunc)
 }
 
+// Create a backup of the symlink
+// This function also marks the symlink as processed in the processedSymlinks map.
+func backupSymlink(path, targetDir string, processedSymlinks map[string]bool) error {
+
+	// Create a .symlink2file directory in the same directory as the symlink
+	dir := filepath.Dir(path)
+	backupDir := filepath.Join(dir, ".symlink2file")
+	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
+		if err := os.Mkdir(backupDir, 0755); err != nil {
+			return fmt.Errorf("failed to create backup directory: %w", err)
+		}
+	}
+
+	linkDest, err := os.Readlink(path)
+	if err != nil {
+		return fmt.Errorf("failed to read symlink: %w", err)
+	}
+	backupPath := filepath.Join(backupDir, filepath.Base(path))
+	if err := os.Symlink(linkDest, backupPath); err != nil {
+		return fmt.Errorf("failed to create backup symlink: %w", err)
+	}
+	processedSymlinks[path] = true // Mark the symlink as processed
+	return nil
+}
+
 // Processes a given path within the filesystem
 // If the path is a symlink, it evaluates the symlink, potentially backs it up (based on user flags),
 // and replaces it with a copy of the target file.
 // For broken symlinks, it either deletes them or keeps them based on the provided option.
 // It also handles the logic to avoid re-processing of already processed symlinks
-func processPath(path, backupDir string, noBackup *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
+func processPath(path, targetDir string, noBackup *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
 
 	// Check if the symlink has already been processed
 	if processedSymlinks[path] {
@@ -125,7 +128,7 @@ func processPath(path, backupDir string, noBackup *bool, brokenSymlinks string, 
 	resolvedPath, err := filepath.EvalSymlinks(path)
 	if err != nil && !*noBackup && brokenSymlinks == "delete" {
 		// Backup broken symlink before deleting
-		if backupErr := backupSymlink(path, backupDir, processedSymlinks); backupErr != nil {
+		if backupErr := backupSymlink(path, targetDir, processedSymlinks); backupErr != nil {
 			return fmt.Errorf("failed to backup broken symlink %q: %w", path, backupErr)
 		}
 	}
@@ -143,7 +146,7 @@ func processPath(path, backupDir string, noBackup *bool, brokenSymlinks string, 
 	}
 
 	if !*noBackup {
-		if err := backupSymlink(path, backupDir, processedSymlinks); err != nil {
+		if err := backupSymlink(path, targetDir, processedSymlinks); err != nil {
 			return fmt.Errorf("failed to backup symlink %q: %w", path, err)
 		}
 	}
@@ -154,21 +157,6 @@ func processPath(path, backupDir string, noBackup *bool, brokenSymlinks string, 
 	}
 
 	processedSymlinks[path] = true
-	return nil
-}
-
-// Create a backup of the symlink
-// This function also marks the symlink as processed in the processedSymlinks map.
-func backupSymlink(path, backupDir string, processedSymlinks map[string]bool) error {
-	linkDest, err := os.Readlink(path)
-	if err != nil {
-		return fmt.Errorf("failed to read symlink: %w", err)
-	}
-	backupPath := filepath.Join(backupDir, filepath.Base(path))
-	if err := os.Symlink(linkDest, backupPath); err != nil {
-		return fmt.Errorf("failed to create backup symlink: %w", err)
-	}
-	processedSymlinks[path] = true // Mark the symlink as processed
 	return nil
 }
 

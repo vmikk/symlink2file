@@ -38,7 +38,7 @@ chmod +x symlink2file
 ```
 git clone https://github.com/vmikk/symlink2file
 cd symlink2file
-go build
+go build -ldflags="-s -w" symlink2file.go
 ```
 
 This will create an executable named `symlink2file` in the current directory.

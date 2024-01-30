@@ -1,6 +1,5 @@
-[![Go](https://github.com/vmikk/symlink2file/actions/workflows/go.yml/badge.svg)](https://github.com/vmikk/symlink2file/actions/workflows/go.yml)
-
 # symlink2file
+[![Go](https://github.com/vmikk/symlink2file/actions/workflows/go.yml/badge.svg)](https://github.com/vmikk/symlink2file/actions/workflows/go.yml)
 
 ## Overview
 
@@ -12,9 +11,9 @@ simplifying file structures, or preparing data for environments that do not supp
 
 ## Features
 
-- Symlink resolving: Recursively resolves symlinks, including those pointing to other symlinks, to ensure the final result is a regular file;
+- Symlink resolving: Recursively resolves symlinks (absolute and relative), including those pointing to other symlinks, to ensure the final result is a regular file;
 - Backup: Provides an option to backup original symlinks before replacement;
-- Optional subdirectory traversal;
+- Subdirectory traversal (optional);
 - Broken symlink handling: Offers configurable behavior for dealing with broken symlinks - either keep them as-is or delete them.
 - Preservation of file attributes: Attempts to preserve the original file attributes (like creation time) where possible.
 
@@ -59,7 +58,7 @@ Options:
 
 Example:
 ```
-./symlink2file --no-backup --broken-symlinks=delete ./path/to/directory
+./symlink2file --no-backup --broken-symlinks delete ./path/to/directory
 ```
 
 This command will replace all symlinks in `./path/to/directory` with their target files, 

@@ -37,4 +37,4 @@ jobs:
          uses: bats-core/bats-action@1.5.4
 
        - name: Test
-         run: ./test/bats/bin/bats test/test.bats
+         run: bats test/test.bats

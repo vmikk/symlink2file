@@ -24,6 +24,17 @@ jobs:
     - name: Build
       run: go build symlink2file.go
 
-    - name: Run tests
-      run: ./test/bats/bin/bats test/test.bats
 
+  tests:
+     runs-on: ubuntu-latest
+     name: Install Bats with libs and runs tests
+     steps:
+
+       - name: Checkout
+         uses: actions/checkout@v2
+
+       - name: Setup Bats and bats libs
+         uses: bats-core/bats-action@1.5.4
+
+       - name: Test
+         run: ./test/bats/bin/bats test/test.bats

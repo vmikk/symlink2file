@@ -28,7 +28,7 @@ setup() {
     ln -s "$(pwd)/test_files/111.txt" "./test_symlinks/111.txt"
     ln -s "$(pwd)/test_files/222.txt" "./test_symlinks/222.txt"
     
-    symlink2file -broken-symlinks keep ./test_symlinks
+    ./symlink2file -broken-symlinks keep ./test_symlinks
 
     ## Original and symlinked files are OK
     assert_exist ./test_files/111.txt
@@ -52,7 +52,7 @@ setup() {
     ln -s "$(pwd)/test_files/111.txt" "./test_symlinks/111.txt"
     ln -s "$(pwd)/test_files/222.txt" "./test_symlinks/222.txt"
     
-    symlink2file -broken-symlinks delete ./test_symlinks
+    ./symlink2file -broken-symlinks delete ./test_symlinks
     
     ## Original and symlinked files are OK
     assert_exist ./test_files/111.txt
@@ -78,7 +78,7 @@ setup() {
     assert_dir_not_exists ./test_symlinks/.symlink2file/
     assert_link_exists ./test_symlinks/111.txt
 
-    symlink2file ./test_symlinks
+    ./symlink2file ./test_symlinks
     
     ## Backup dir created, symlink inside
     assert_dir_exists ./test_symlinks/.symlink2file/
@@ -100,7 +100,7 @@ setup() {
     assert_dir_not_exists ./test_symlinks/.symlink2file/
     assert_link_exists ./test_symlinks/111.txt
 
-    symlink2file --no-backup ./test_symlinks
+    ./symlink2file --no-backup ./test_symlinks
     
     ## Backup dir is missing
     assert_dir_not_exists ./test_symlinks/.symlink2file/

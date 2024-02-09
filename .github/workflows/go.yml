@@ -32,21 +32,25 @@ jobs:
         retention-days: 1
 
   tests:
-     needs: build
-     runs-on: ubuntu-latest
-     name: Install Bats with libs and runs tests
-     steps:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Install Bats with libs and runs tests
+    steps:
 
-       - name: Checkout
-         uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
 
-       - name: Setup Bats and bats libs
-         uses: bats-core/bats-action@1.5.4
+      - name: Setup Bats and bats libs
+        uses: bats-core/bats-action@1.5.4
+        with:
+          support-path: ${{ github.workspace }}/test/test_helper/bats-support
+          assert-path:  ${{ github.workspace }}/test/test_helper/bats-assert
+          file-path:    ${{ github.workspace }}/test/test_helper/bats-file
 
-       - name: Download the binary from artifacts
-         uses: actions/download-artifact@v4
-         with:
-           name: symlink2file
+      - name: Download the binary from artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: symlink2file
 
-       - name: Test
-         run: bats test/test.bats
+      - name: Test
+        run: bats test/test.bats

@@ -57,6 +57,7 @@ jobs:
       - name: Test
         run: |
           pwd
+          chmod +x symlink2file 
           ls -lh
           bats test/test.bats
 

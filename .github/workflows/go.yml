@@ -53,7 +53,7 @@ jobs:
           name: symlink2file
 
       - name: Test
-        run: 
+        run: |
           pwd
           ls -lh
           which bats

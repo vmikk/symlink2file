@@ -53,5 +53,14 @@ jobs:
           name: symlink2file
 
       - name: Test
-        run: bats ${{ github.workspace }}/test/test.bats
+        run: 
+          pwd
+          ls -lh
+          which bats
+          which symlink2file
+          -e "\n"
+          echo -e "\n" ${{ github.workspace }}
+          ls -l ${{ github.workspace }}/test
+          echo -e "\n" ${{ github.path }}
+          # bats ${{ github.workspace }}/test/test.bats
 

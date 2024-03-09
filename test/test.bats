@@ -28,6 +28,10 @@ setup() {
     ln -s "$(pwd)/test_files/111.txt" "./test_symlinks/111.txt"
     ln -s "$(pwd)/test_files/222.txt" "./test_symlinks/222.txt"
     
+    ## MD5 of original file
+    original_md5=$(md5sum ./test_files/111.txt | awk '{ print $1 }')
+
+    ## Replace symlinks
     ./symlink2file -broken-symlinks keep ./test_symlinks
 
     ## Original and symlinked files are OK
@@ -43,6 +47,12 @@ setup() {
 
     ## No broken backup
     assert_link_not_exists ./test_symlinks/.symlink2file/222.txt
+
+    ## MD5 of replaced symlink
+    replaced_md5=$(md5sum ./test_symlinks/111.txt | awk '{ print $1 }')
+    
+    ## Validate MD5
+    assert_equal $original_md5 $replaced_md5 
 }
 
 @test "broken links, delete" {

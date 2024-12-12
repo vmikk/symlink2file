@@ -54,6 +54,12 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 	noRecurse = flag.Bool("no-recurse", false, "Disable recursive traversal of subdirectories")
 	flag.Parse()
 
+	// Validate broken-symlinks flag
+	if *brokenSymlinks != "keep" && *brokenSymlinks != "delete" {
+		fmt.Printf(redColor+"Invalid value for -broken-symlinks: %s. Must be 'keep' or 'delete'\n"+resetColor, *brokenSymlinks)
+		os.Exit(1)
+	}
+
 	// Check for required non-flag argument (target directory)
 	if flag.NArg() != 1 {
 		fmt.Println("Usage: " + blueColor + "symlink2file" + resetColor + " [OPTIONS] <directory>")

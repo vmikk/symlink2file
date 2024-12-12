@@ -31,7 +31,7 @@ func main() {
 
 	processedSymlinks := make(map[string]bool)
 	if err := processSymlinks(targetDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
-		coloredPrintf(redColor, "Error processing symlinks:", err)
+		coloredPrintf(redColor, "Error processing symlinks: %v\n", err)
 		os.Exit(1)
 	}
 

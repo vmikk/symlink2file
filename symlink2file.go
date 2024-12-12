@@ -177,6 +177,20 @@ func processPath(path, targetDir string, noBackup *bool, brokenSymlinks string, 
 // Replace a symlink with a regular file
 // It also replicates the original file's metadata (modification times and permissions) to the new file
 func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
+	// Create a temporary file in the same directory
+	dir := filepath.Dir(symlinkPath)
+	tempFile, err := os.CreateTemp(dir, ".tmp-*")
+	if err != nil {
+		return fmt.Errorf("error creating temporary file: %w", err)
+	}
+	tempPath := tempFile.Name()
+
+	// Ensure cleanup in case of errors
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempPath)
+	}()
+
 	// Open the target file for reading
 	inputFile, err := os.Open(targetFilePath)
 	if err != nil {
@@ -184,21 +198,9 @@ func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
 	}
 	defer inputFile.Close()
 
-	// Remove the symlink
-	if err := os.Remove(symlinkPath); err != nil {
-		return fmt.Errorf("error removing symlink %q: %w", symlinkPath, err)
-	}
-
-	// Create a new file at the original symlink path
-	outputFile, err := os.Create(symlinkPath)
-	if err != nil {
-		return fmt.Errorf("error creating file at %q: %w", symlinkPath, err)
-	}
-	defer outputFile.Close()
-
-	// Copy the content to the new file
-	if _, err = io.Copy(outputFile, inputFile); err != nil {
-		return fmt.Errorf("error copying data to new file at %q: %w", symlinkPath, err)
+	// Copy the content to the temporary file
+	if _, err = io.Copy(tempFile, inputFile); err != nil {
+		return fmt.Errorf("error copying data to temporary file: %w", err)
 	}
 
 	// Get the original file's metadata to replicate it
@@ -208,12 +210,28 @@ func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
 	}
 
 	// Set the file metadata to match the original file
-	if err := os.Chtimes(symlinkPath, originalFileInfo.ModTime(), originalFileInfo.ModTime()); err != nil {
-		return fmt.Errorf("error setting file times for %q: %w", symlinkPath, err)
+	if err := tempFile.Chmod(originalFileInfo.Mode()); err != nil {
+		return fmt.Errorf("error setting file mode: %w", err)
 	}
 
-	if err := os.Chmod(symlinkPath, originalFileInfo.Mode()); err != nil {
-		return fmt.Errorf("error setting file mode for %q: %w", symlinkPath, err)
+	// Close the temporary file before moving it
+	if err := tempFile.Close(); err != nil {
+		return fmt.Errorf("error closing temporary file: %w", err)
+	}
+
+	// Remove the symlink
+	if err := os.Remove(symlinkPath); err != nil {
+		return fmt.Errorf("error removing symlink %q: %w", symlinkPath, err)
+	}
+
+	// Rename temporary file to final location
+	if err := os.Rename(tempPath, symlinkPath); err != nil {
+		return fmt.Errorf("error moving temporary file to final location: %w", err)
+	}
+
+	// Set the file times after the move
+	if err := os.Chtimes(symlinkPath, originalFileInfo.ModTime(), originalFileInfo.ModTime()); err != nil {
+		return fmt.Errorf("error setting file times: %w", err)
 	}
 
 	return nil

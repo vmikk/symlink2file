@@ -65,7 +65,15 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 		fmt.Println("Usage: " + blueColor + "symlink2file" + resetColor + " [OPTIONS] <directory>")
 		os.Exit(1)
 	}
+
+	// Convert to absolute path
+	var err error
 	targetDir = flag.Arg(0)
+	targetDir, err = filepath.Abs(targetDir)
+	if err != nil {
+		fmt.Printf(redColor+"Error resolving path: %v\n"+resetColor, err)
+		os.Exit(1)
+	}
 
 	return noBackup, brokenSymlinks, noRecurse, targetDir
 }

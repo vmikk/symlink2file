@@ -131,7 +131,7 @@ setup() {
     done
 
     ## Create symlinks
-    for file in ./test_files/*; do
+    for file in $(pwd)/test_files/*; do
         ln -s "$file" ./test_symlinks/$(basename "$file")
     done
 

@@ -11,10 +11,11 @@ import (
 
 // Colors for the verbose output
 const (
-	redColor   = "\033[31m"
-	greenColor = "\033[32m"
-	blueColor  = "\033[34m"
-	resetColor = "\033[0m"
+	redColor    = "\033[31m"       // Red for errors
+	greenColor  = "\033[38;5;150m" // Pastel green
+	headerColor = "\033[38;5;110m" // Pastel blue
+	cmdColor    = "\033[38;5;246m" // Soft gray for commands
+	resetColor  = "\033[0m"        // Reset to default color
 )
 
 func coloredPrintf(color string, format string, a ...interface{}) {
@@ -48,10 +49,48 @@ func main() {
 
 // Parse command-line flags and return their values
 func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targetDir string) {
+	// Update the flag descriptions to be more descriptive
+	noBackup = flag.Bool("no-backup", false, "Skip creating backups of replaced symlinks")
+	brokenSymlinks = flag.String("broken-symlinks", "keep", "Action for broken symlinks: 'keep' or 'delete'")
+	noRecurse = flag.Bool("no-recurse", false, "Process only the specified directory, skip subdirectories")
 
-	noBackup = flag.Bool("no-backup", false, "Disable backup of symlinks")
-	brokenSymlinks = flag.String("broken-symlinks", "keep", "How to handle broken symlinks: keep or delete")
-	noRecurse = flag.Bool("no-recurse", false, "Disable recursive traversal of subdirectories")
+	// Add custom usage message
+	flag.Usage = func() {
+		fmt.Printf(`%ssymlink2file%s - converts symbolic links to regular files
+
+Usage:
+    %ssymlink2file [options] <directory>%s
+
+Options:
+    %s-no-backup%s        Skip creating backups of replaced symlinks
+    %s-broken-symlinks%s  Action for broken symlinks: 'keep' or 'delete' (default: keep)
+    %s-no-recurse%s       Process only the specified directory, skip subdirectories
+
+Examples:
+    # Convert all symlinks in current directory and subdirectories
+    %ssymlink2file .%s
+
+    # Convert symlinks in /path/to/dir, delete broken ones, no backups
+    %ssymlink2file -broken-symlinks delete -no-backup /path/to/dir%s
+
+    # Convert symlinks in current directory only (no subdirectories)
+    %ssymlink2file -no-recurse .%s
+
+More information:
+    %shttps://github.com/vmikk/symlink2file%s
+`,
+			headerColor, resetColor,
+			headerColor, resetColor,
+			greenColor, resetColor,
+			greenColor, resetColor,
+			greenColor, resetColor,
+			cmdColor, resetColor,
+			cmdColor, resetColor,
+			cmdColor, resetColor,
+			cmdColor, resetColor,
+		)
+	}
+
 	flag.Parse()
 
 	// Validate broken-symlinks flag
@@ -62,7 +101,7 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 
 	// Check for required non-flag argument (target directory)
 	if flag.NArg() != 1 {
-		fmt.Println("Usage: " + blueColor + "symlink2file" + resetColor + " [OPTIONS] <directory>")
+		flag.Usage()
 		os.Exit(1)
 	}
 

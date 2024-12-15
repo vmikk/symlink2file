@@ -151,3 +151,38 @@ setup() {
         assert_equal $original_md5 $replaced_md5 
     done
 }
+
+@test "chained symlinks resolve correctly" {
+    rm -rf ./test_files ./test_symlinks/
+    mkdir -p ./test_files ./test_symlinks/
+    
+    # Create original file
+    echo "test content for symlink2file" > test_files/original.txt
+    
+    # Create chain of symlinks
+    ln -s "$(pwd)/test_files/original.txt" "./test_files/link1.txt"
+    ln -s "$(pwd)/test_files/link1.txt" "./test_files/link2.txt"
+    ln -s "$(pwd)/test_files/link2.txt" "./test_symlinks/final.txt"
+    
+    # Verify initial state
+    assert_file_exists ./test_files/original.txt
+    assert_symlink_to test_files/original.txt test_files/link1.txt
+    assert_symlink_to test_files/link1.txt test_files/link2.txt
+    assert_symlink_to test_files/link2.txt test_symlinks/final.txt
+    
+    # Replace symlink
+    ./symlink2file ./test_symlinks
+    
+    # Verify the final symlink was replaced with a regular file
+    assert_file_exists     ./test_symlinks/final.txt
+    assert_link_not_exists ./test_symlinks/final.txt
+    
+    # Verify content matches
+    original_md5=$(md5sum ./test_files/original.txt | awk '{ print $1 }')
+    final_md5=$(md5sum ./test_symlinks/final.txt | awk '{ print $1 }')
+    assert_equal $original_md5 $final_md5
+    
+    # Verify backup was created
+    assert_link_exists ./test_symlinks/.symlink2file/final.txt
+}
+

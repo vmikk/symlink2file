@@ -18,6 +18,10 @@ const (
 	resetColor  = "\033[0m"        // Reset to default color
 )
 
+const (
+	version = "1.0.0" // Program version
+)
+
 func coloredPrintf(color string, format string, a ...interface{}) {
 	fmt.Printf(color+format+resetColor, a...)
 }
@@ -49,10 +53,12 @@ func main() {
 
 // Parse command-line flags and return their values
 func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targetDir string) {
-	// Update the flag descriptions to be more descriptive
+
+	// Flags
 	noBackup = flag.Bool("no-backup", false, "Skip creating backups of replaced symlinks")
 	brokenSymlinks = flag.String("broken-symlinks", "keep", "Action for broken symlinks: 'keep' or 'delete'")
 	noRecurse = flag.Bool("no-recurse", false, "Process only the specified directory, skip subdirectories")
+	showVersion := flag.Bool("version", false, "Show version information")
 
 	// Add custom usage message
 	flag.Usage = func() {
@@ -92,6 +98,12 @@ More information:
 	}
 
 	flag.Parse()
+
+	// Handle version flag
+	if *showVersion {
+		fmt.Printf("symlink2file %s\n", version)
+		os.Exit(0)
+	}
 
 	// Validate broken-symlinks flag
 	if *brokenSymlinks != "keep" && *brokenSymlinks != "delete" {

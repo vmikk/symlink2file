@@ -60,17 +60,19 @@ func parseFlags() (noBackup *bool, brokenSymlinks *string, noRecurse *bool, targ
 	noRecurse = flag.Bool("no-recurse", false, "Process only the specified directory, skip subdirectories")
 	showVersion := flag.Bool("version", false, "Show version information")
 
-	// Add custom usage message
+	// Usage message
 	flag.Usage = func() {
-		fmt.Printf(`%ssymlink2file%s - converts symbolic links to regular files
+		fmt.Printf(`
+%ssymlink2file%s - converts symbolic links to regular files
 
 Usage:
     %ssymlink2file [options] <directory>%s
 
 Options:
-    %s-no-backup%s        Skip creating backups of replaced symlinks
-    %s-broken-symlinks%s  Action for broken symlinks: 'keep' or 'delete' (default: keep)
-    %s-no-recurse%s       Process only the specified directory, skip subdirectories
+    %s--no-backup%s        Skip creating backups of replaced symlinks
+    %s--broken-symlinks%s  Action for broken symlinks: 'keep' or 'delete' (default: keep)
+    %s--no-recurse%s       Process only the specified directory, skip subdirectories
+    %s--version%s          Show version information
 
 Examples:
     # Convert all symlinks in current directory and subdirectories
@@ -87,6 +89,7 @@ More information:
 `,
 			headerColor, resetColor,
 			headerColor, resetColor,
+			greenColor, resetColor,
 			greenColor, resetColor,
 			greenColor, resetColor,
 			greenColor, resetColor,

@@ -152,7 +152,7 @@ More information:
 
 	// Validate broken-symlinks flag
 	if *brokenSymlinks != "keep" && *brokenSymlinks != "delete" {
-		fmt.Printf(redColor+"Invalid value for -broken-symlinks: %s. Must be 'keep' or 'delete'\n"+resetColor, *brokenSymlinks)
+		coloredPrintf(redColor, "Invalid value for -broken-symlinks: %s. Must be 'keep' or 'delete'\n", *brokenSymlinks)
 		os.Exit(1)
 	}
 
@@ -167,7 +167,7 @@ More information:
 	targetDir = flag.Arg(0)
 	targetDir, err = filepath.Abs(targetDir)
 	if err != nil {
-		fmt.Printf(redColor+"Error resolving path: %v\n"+resetColor, err)
+		coloredPrintf(redColor, "Error resolving path: %v\n", err)
 		os.Exit(1)
 	}
 

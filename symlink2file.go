@@ -290,8 +290,13 @@ func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
 
 	// Ensure cleanup in case of errors
 	defer func() {
-		tempFile.Close()
-		os.Remove(tempPath)
+		if tempFile != nil {
+			tempFile.Close()
+		}
+		// Only remove temp file if it still exists (not moved)
+		if _, err := os.Stat(tempPath); err == nil {
+			os.Remove(tempPath)
+		}
 	}()
 
 	// Open the target file for reading
@@ -317,10 +322,16 @@ func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
 		return fmt.Errorf("error setting file mode: %w", err)
 	}
 
+	// Sync to ensure data is written to disk before closing
+	if err := tempFile.Sync(); err != nil {
+		return fmt.Errorf("error syncing temporary file: %w", err)
+	}
+
 	// Close the temporary file before moving it
 	if err := tempFile.Close(); err != nil {
 		return fmt.Errorf("error closing temporary file: %w", err)
 	}
+	tempFile = nil // Prevent defer from closing again
 
 	// Remove the symlink
 	if err := os.Remove(symlinkPath); err != nil {

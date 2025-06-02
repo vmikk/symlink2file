@@ -22,7 +22,7 @@ const (
 )
 
 const (
-	version = "1.0.0" // Program version
+	version = "1.1.0" // Program version
 )
 
 // Check if the output is a terminal

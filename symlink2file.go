@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // Colors for the verbose output
@@ -46,13 +49,36 @@ func coloredPrintf(color string, format string, a ...interface{}) {
 // - set up the backup directory,
 // - initiate the process of handling symlinks in the specified target directory
 func main() {
+	// Create context that can be cancelled by signals
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	// Handle signals for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		coloredPrintf(headerColor, "\nReceived interrupt signal, stopping...\n")
+		cancel()
+	}()
+
+	if err := run(ctx); err != nil {
+		if ctx.Err() != nil {
+			coloredPrintf(headerColor, "Operation cancelled.\n")
+			os.Exit(130) // Exit code for interrupted by signal
+		}
+		coloredPrintf(redColor, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// Main application logic
+func run(ctx context.Context) error {
 	noBackup, brokenSymlinks, noRecurse, targetDir := parseFlags()
 
 	processedSymlinks := make(map[string]bool)
 	if err := processSymlinks(targetDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
-		coloredPrintf(redColor, "Error processing symlinks: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("processing symlinks: %w", err)
 	}
 
 	// Count the number of processed symlinks
@@ -64,6 +90,7 @@ func main() {
 	}
 
 	coloredPrintf(greenColor, "Symlink replacement complete. Processed %d symlinks.\n", count)
+	return nil
 }
 
 // Parse command-line flags and return their values

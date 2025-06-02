@@ -22,8 +22,23 @@ const (
 	version = "1.0.0" // Program version
 )
 
+// Check if the output is a terminal
+func isTerminal(f *os.File) bool {
+	if stat, err := f.Stat(); err == nil {
+		mode := stat.Mode()
+		return (mode & os.ModeCharDevice) == os.ModeCharDevice
+	}
+	return false
+}
+
+// Print with color (if the output is a terminal)
 func coloredPrintf(color string, format string, a ...interface{}) {
-	fmt.Printf(color+format+resetColor, a...)
+	// Only use colors if stdout is a terminal
+	if isTerminal(os.Stdout) {
+		fmt.Printf(color+format+resetColor, a...)
+	} else {
+		fmt.Printf(format, a...)
+	}
 }
 
 // The entry point of the program

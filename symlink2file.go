@@ -77,7 +77,7 @@ func run(ctx context.Context) error {
 	noBackup, brokenSymlinks, noRecurse, targetDir := parseFlags()
 
 	processedSymlinks := make(map[string]bool)
-	if err := processSymlinks(targetDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
+	if err := processSymlinks(ctx, targetDir, noBackup, noRecurse, *brokenSymlinks, processedSymlinks); err != nil {
 		return fmt.Errorf("processing symlinks: %w", err)
 	}
 
@@ -175,7 +175,7 @@ More information:
 }
 
 // Process the symlinks in the given directory
-func processSymlinks(targetDir string, noBackup, noRecurse *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
+func processSymlinks(ctx context.Context, targetDir string, noBackup, noRecurse *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
 	walkFunc := func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("error accessing path %q: %w", path, err)
@@ -188,7 +188,7 @@ func processSymlinks(targetDir string, noBackup, noRecurse *bool, brokenSymlinks
 
 		// Process only symlinks
 		if info.Type()&os.ModeSymlink != 0 {
-			return processPath(path, targetDir, noBackup, brokenSymlinks, processedSymlinks)
+			return processPath(ctx, path, targetDir, noBackup, brokenSymlinks, processedSymlinks)
 		}
 
 		return nil
@@ -227,11 +227,18 @@ func backupSymlink(path, targetDir string, processedSymlinks map[string]bool) er
 // and replaces it with a copy of the target file.
 // For broken symlinks, it either deletes them or keeps them based on the provided option.
 // It also handles the logic to avoid re-processing of already processed symlinks
-func processPath(path, targetDir string, noBackup *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
+func processPath(ctx context.Context, path, targetDir string, noBackup *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
+
+	// Check for context cancellation
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
 
 	// Check if the symlink has already been processed
 	if processedSymlinks[path] {
-		fmt.Println("Symlink already processed, skipping:", path)
+		coloredPrintf(headerColor, "Symlink already processed, skipping: %s\n", path)
 		return nil
 	}
 
@@ -248,9 +255,9 @@ func processPath(path, targetDir string, noBackup *bool, brokenSymlinks string, 
 			if removeErr := os.Remove(path); removeErr != nil {
 				return fmt.Errorf("error removing broken symlink %q: %w", path, removeErr)
 			}
-			coloredPrintf(redColor, "Removed broken symlink: "+resetColor+"%s\n", path)
+			coloredPrintf(redColor, "Removed broken symlink: %s\n", path)
 		} else {
-			coloredPrintf(redColor, "Keeping broken symlink: "+resetColor+"%s\n", path)
+			coloredPrintf(redColor, "Keeping broken symlink: %s\n", path)
 		}
 		return nil
 	}

@@ -32,7 +32,7 @@ setup() {
     original_md5=$(md5sum ./test_files/111.txt | awk '{ print $1 }')
 
     ## Replace symlinks
-    ./symlink2file -broken-symlinks keep ./test_symlinks
+    ./symlink2file --broken-symlinks keep ./test_symlinks
 
     ## Original and symlinked files are OK
     assert_exist ./test_files/111.txt
@@ -62,7 +62,7 @@ setup() {
     ln -s "$(pwd)/test_files/111.txt" "./test_symlinks/111.txt"
     ln -s "$(pwd)/test_files/222.txt" "./test_symlinks/222.txt"
     
-    ./symlink2file -broken-symlinks delete ./test_symlinks
+    ./symlink2file --broken-symlinks delete ./test_symlinks
     
     ## Original and symlinked files are OK
     assert_exist ./test_files/111.txt

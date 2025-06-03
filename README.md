@@ -17,6 +17,29 @@ simplifying file structures, or preparing data for environments that do not supp
 - Broken symlink handling: Offers configurable behavior for dealing with broken symlinks - either keep them as-is or delete them.
 - Preservation of file attributes: Attempts to preserve the original file attributes (like creation time) where possible.
 
+
+## Usage
+
+Basic usage:
+```
+./symlink2file [OPTIONS] <directory>
+```
+
+Options:
+- `--no-backup`: Disable backup of original symlinks;
+- `--broken-symlinks=keep|delete`: Define how to handle broken symlinks (default: `keep`);
+- `--no-recurse`: Disable recursive traversal of subdirectories.
+
+Example:
+```
+./symlink2file --no-backup --broken-symlinks delete ./path/to/directory
+```
+
+This command will replace all symlinks in `./path/to/directory` with their target files, 
+without creating backups, 
+and will delete any broken symlinks found.
+
+
 ## Installation
 
 `symlink2file` can be installed either by downloading a pre-compiled binary or by compiling the source code manually. 
@@ -44,26 +67,18 @@ go build -ldflags="-s -w" symlink2file.go
 This will create an executable named `symlink2file` in the current directory.
 
 
-## Usage
+### Run tests
 
-Basic usage:
-```
-./symlink2file [OPTIONS] <directory>
-```
+Tests are written using [Bats](https://github.com/bats-core/bats-core) and can be run with the following commands:
 
-Options:
-- `--no-backup`: Disable backup of original symlinks;
-- `--broken-symlinks=keep|delete`: Define how to handle broken symlinks (default: `keep`);
-- `--no-recurse`: Disable recursive traversal of subdirectories.
+``` bash
+# Pull bats submodules  
+git submodule update --init --recursive
 
-Example:
-```
-./symlink2file --no-backup --broken-symlinks delete ./path/to/directory
+# Run tests
+./test/bats/bin/bats test/test.bats
 ```
 
-This command will replace all symlinks in `./path/to/directory` with their target files, 
-without creating backups, 
-and will delete any broken symlinks found.
 
 ## Note: Experimental project
 

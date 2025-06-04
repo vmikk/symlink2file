@@ -53,7 +53,7 @@ func coloredPrintf(color string, format string, a ...interface{}) {
 }
 
 // Help message
-var customUsageTemplate = `%ssymlink2file%s - {{.Short}}
+var customUsageTemplate = `%ssymlink2file%s - converts symbolic links to regular files
 
 %sUsage:%s
   %ssymlink2file%s [directory] %s[flags]%s
@@ -77,7 +77,7 @@ var customUsageTemplate = `%ssymlink2file%s - {{.Short}}
 // Root command definition
 var rootCmd = &cobra.Command{
 	Use:   "symlink2file [directory]",
-	Short: "Converts symbolic links to regular files",
+	Short: "",
 	Long:  "",
 	Version: version,
 	Args:    cobra.ExactArgs(1),
@@ -127,8 +127,11 @@ var rootCmd = &cobra.Command{
 func init() {
 	// Define flags with both short and long versions
 	rootCmd.Flags().BoolVarP(&noBackup, "no-backup", "b", false, "Skip creating backups of replaced symlinks")
-	rootCmd.Flags().StringVarP(&brokenSymlinks, "broken-symlinks", "s", "keep", "Action for broken symlinks: 'keep' or 'delete'")
 	rootCmd.Flags().BoolVarP(&noRecurse, "no-recurse", "r", false, "Process only the specified directory, skip subdirectories")
+	rootCmd.Flags().StringVarP(&brokenSymlinks, "broken-symlinks", "s", "keep", "Action for broken symlinks: 'keep' or 'delete'")
+
+	// Disable automatic flag sorting
+	rootCmd.Flags().SortFlags = false
 
 	// Set custom usage template with colors
 	tmpl := fmt.Sprintf(customUsageTemplate,

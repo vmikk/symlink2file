@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	version = "1.1.0" // Program version
+	version = "1.2.0" // Program version
 )
 
 // Global flag variables

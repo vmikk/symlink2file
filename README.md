@@ -21,7 +21,7 @@ simplifying file structures, or preparing data for environments that do not supp
 ## Usage
 
 Basic usage:
-```
+```bash
 ./symlink2file [OPTIONS] <directory>
 ```
 
@@ -31,7 +31,7 @@ Options:
 - `--no-recurse`: Disable recursive traversal of subdirectories.
 
 Example:
-```
+```bash
 ./symlink2file --no-backup --broken-symlinks delete ./path/to/directory
 ```
 
@@ -49,7 +49,7 @@ and will delete any broken symlinks found.
 1. Go to the [Releases](https://github.com/vmikk/symlink2file/releases) page;
 2. Download the binary;
 3. Make the binary executable:
-```
+```bash
 chmod +x symlink2file
 ```
 
@@ -58,7 +58,7 @@ chmod +x symlink2file
 1. Ensure you have [Go](https://go.dev/) (`>=1.21`) installed on your system;
 2. Clone the repository and compile the source code:
 
-```
+```bash 
 git clone https://github.com/vmikk/symlink2file
 cd symlink2file
 go build -ldflags="-s -w" symlink2file.go
@@ -71,17 +71,10 @@ This will create an executable named `symlink2file` in the current directory.
 
 Tests are written using [Bats](https://github.com/bats-core/bats-core) and can be run with the following commands:
 
-``` bash
+```bash
 # Pull bats submodules  
 git submodule update --init --recursive
 
 # Run tests
 ./test/bats/bin/bats test/test.bats
 ```
-
-
-## Note: Experimental project
-
-> [!CAUTION]
-> Please be aware that this is an experimental project, developed primarily for testing purposes and as a means to explore and understand the capabilities of the Go programming language.  
-> Therefore, the code might not cover all edge cases or be suitable for production use. Users are encouraged to use this tool in non-critical environments and to thoroughly test it in their specific use cases.  

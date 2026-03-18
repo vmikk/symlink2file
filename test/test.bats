@@ -186,3 +186,40 @@ setup() {
     assert_link_exists ./test_symlinks/.symlink2file/final.txt
 }
 
+@test "directory symlinks are materialized and nested symlinks are replaced" {
+    rm -rf ./test_files ./test_symlinks/
+    mkdir -p ./test_files/source_dir/subdir ./test_symlinks/
+
+    echo "root file" > ./test_files/source_dir/root.txt
+    echo "nested file" > ./test_files/source_dir/subdir/nested.txt
+    echo "linked content" > ./test_files/shared.txt
+
+    ln -s "$(pwd)/test_files/shared.txt" "./test_files/source_dir/linked.txt"
+    ln -s "$(pwd)/test_files/source_dir" "./test_symlinks/dirlink"
+
+    ./symlink2file ./test_symlinks
+
+    assert_dir_exists ./test_symlinks/dirlink
+    assert_link_not_exists ./test_symlinks/dirlink
+    assert_link_exists ./test_symlinks/.symlink2file/dirlink
+
+    assert_file_exists ./test_symlinks/dirlink/root.txt
+    assert_file_exists ./test_symlinks/dirlink/subdir/nested.txt
+    assert_file_exists ./test_symlinks/dirlink/linked.txt
+    assert_link_not_exists ./test_symlinks/dirlink/linked.txt
+
+    original_root_md5=$(md5sum ./test_files/source_dir/root.txt | awk '{ print $1 }')
+    copied_root_md5=$(md5sum ./test_symlinks/dirlink/root.txt | awk '{ print $1 }')
+    assert_equal $original_root_md5 $copied_root_md5
+
+    original_nested_md5=$(md5sum ./test_files/source_dir/subdir/nested.txt | awk '{ print $1 }')
+    copied_nested_md5=$(md5sum ./test_symlinks/dirlink/subdir/nested.txt | awk '{ print $1 }')
+    assert_equal $original_nested_md5 $copied_nested_md5
+
+    original_linked_md5=$(md5sum ./test_files/shared.txt | awk '{ print $1 }')
+    copied_linked_md5=$(md5sum ./test_symlinks/dirlink/linked.txt | awk '{ print $1 }')
+    assert_equal $original_linked_md5 $copied_linked_md5
+
+    assert_dir_exists ./test_files/source_dir
+    assert_link_exists ./test_files/source_dir/linked.txt
+}

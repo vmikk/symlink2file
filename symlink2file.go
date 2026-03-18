@@ -76,9 +76,9 @@ var customUsageTemplate = `%ssymlink2file%s - converts symbolic links to regular
 
 // Root command definition
 var rootCmd = &cobra.Command{
-	Use:   "symlink2file [directory]",
-	Short: "",
-	Long:  "",
+	Use:     "symlink2file [directory]",
+	Short:   "",
+	Long:    "",
 	Version: version,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -139,7 +139,7 @@ func init() {
 		greenColor, resetColor,   // Usage header
 		blueColor, resetColor,    // cmd
 		greyColor, resetColor,    // Flags
-		greenColor, resetColor,   // Options header  
+		greenColor, resetColor,   // Options header
 		greenColor, resetColor,   // Examples header
 		greyColor, resetColor,    // example 1
 		greyColor, resetColor,    // example 2
@@ -180,7 +180,7 @@ func processSymlinks(ctx context.Context, targetDir string, noBackup, noRecurse 
 
 		// Process only symlinks
 		if info.Type()&os.ModeSymlink != 0 {
-			return processPath(ctx, path, targetDir, noBackup, brokenSymlinks, processedSymlinks)
+			return processPath(ctx, path, targetDir, noBackup, noRecurse, brokenSymlinks, processedSymlinks)
 		}
 
 		return nil
@@ -219,7 +219,7 @@ func backupSymlink(path, targetDir string, processedSymlinks map[string]bool) er
 // and replaces it with a copy of the target file.
 // For broken symlinks, it either deletes them or keeps them based on the provided option.
 // It also handles the logic to avoid re-processing of already processed symlinks
-func processPath(ctx context.Context, path, targetDir string, noBackup *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
+func processPath(ctx context.Context, path, targetDir string, noBackup, noRecurse *bool, brokenSymlinks string, processedSymlinks map[string]bool) error {
 
 	// Check for context cancellation
 	select {
@@ -260,13 +260,37 @@ func processPath(ctx context.Context, path, targetDir string, noBackup *bool, br
 		}
 	}
 
-	// Replace symlink with a copy of the file it points to
-	if err := replaceSymlinkWithFile(path, resolvedPath); err != nil {
-		return fmt.Errorf("failed to replace symlink %q with its target file %q: %w", path, resolvedPath, err)
+	targetInfo, err := os.Stat(resolvedPath)
+	if err != nil {
+		return fmt.Errorf("failed to stat target path %q: %w", resolvedPath, err)
+	}
+
+	// Replace symlink with a copy of the path it points to
+	if err := replaceSymlinkWithTarget(path, resolvedPath, targetInfo); err != nil {
+		return fmt.Errorf("failed to replace symlink %q with its target path %q: %w", path, resolvedPath, err)
 	}
 
 	processedSymlinks[path] = true
+
+	if targetInfo.IsDir() {
+		if err := processSymlinks(ctx, path, noBackup, noRecurse, brokenSymlinks, processedSymlinks); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+// Replace a symlink with the resolved target path
+func replaceSymlinkWithTarget(symlinkPath, targetPath string, targetInfo os.FileInfo) error {
+	switch {
+	case targetInfo.IsDir():
+		return replaceSymlinkWithDirectory(symlinkPath, targetPath, targetInfo)
+	case targetInfo.Mode().IsRegular():
+		return replaceSymlinkWithFile(symlinkPath, targetPath)
+	default:
+		return fmt.Errorf("unsupported target type for %q: %s", targetPath, targetInfo.Mode().String())
+	}
 }
 
 // Replace a symlink with a regular file
@@ -338,6 +362,145 @@ func replaceSymlinkWithFile(symlinkPath, targetFilePath string) error {
 	// Set the file times after the move
 	if err := os.Chtimes(symlinkPath, originalFileInfo.ModTime(), originalFileInfo.ModTime()); err != nil {
 		return fmt.Errorf("error setting file times: %w", err)
+	}
+
+	return nil
+}
+
+// Replace a symlink with a copied directory tree
+func replaceSymlinkWithDirectory(symlinkPath, targetDirPath string, targetInfo os.FileInfo) error {
+	parentDir := filepath.Dir(symlinkPath)
+	tempDir, err := os.MkdirTemp(parentDir, ".tmp-*")
+	if err != nil {
+		return fmt.Errorf("error creating temporary directory: %w", err)
+	}
+
+	defer func() {
+		if _, err := os.Stat(tempDir); err == nil {
+			os.RemoveAll(tempDir)
+		}
+	}()
+
+	if err := os.Chmod(tempDir, targetInfo.Mode()); err != nil {
+		return fmt.Errorf("error setting temporary directory mode: %w", err)
+	}
+
+	if err := copyDirectoryContents(targetDirPath, tempDir); err != nil {
+		return err
+	}
+
+	if err := os.Chtimes(tempDir, targetInfo.ModTime(), targetInfo.ModTime()); err != nil {
+		return fmt.Errorf("error setting directory times: %w", err)
+	}
+
+	if err := os.Remove(symlinkPath); err != nil {
+		return fmt.Errorf("error removing symlink %q: %w", symlinkPath, err)
+	}
+
+	if err := os.Rename(tempDir, symlinkPath); err != nil {
+		return fmt.Errorf("error moving temporary directory to final location: %w", err)
+	}
+
+	return nil
+}
+
+func copyDirectoryContents(srcDir, dstDir string) error {
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("error reading directory %q: %w", srcDir, err)
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(srcDir, entry.Name())
+		dstPath := filepath.Join(dstDir, entry.Name())
+
+		info, err := os.Lstat(srcPath)
+		if err != nil {
+			return fmt.Errorf("error getting file info for %q: %w", srcPath, err)
+		}
+
+		switch {
+		case info.IsDir():
+			if err := copyDirectory(srcPath, dstPath, info); err != nil {
+				return err
+			}
+		case info.Mode()&os.ModeSymlink != 0:
+			linkDest, err := os.Readlink(srcPath)
+			if err != nil {
+				return fmt.Errorf("error reading symlink %q: %w", srcPath, err)
+			}
+			if err := os.Symlink(linkDest, dstPath); err != nil {
+				return fmt.Errorf("error creating symlink %q: %w", dstPath, err)
+			}
+		case info.Mode().IsRegular():
+			if err := copyRegularFile(srcPath, dstPath, info); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported file type at %q: %s", srcPath, info.Mode().String())
+		}
+	}
+
+	return nil
+}
+
+func copyDirectory(srcDir, dstDir string, dirInfo os.FileInfo) error {
+	if err := os.Mkdir(dstDir, dirInfo.Mode().Perm()); err != nil {
+		return fmt.Errorf("error creating directory %q: %w", dstDir, err)
+	}
+
+	if err := os.Chmod(dstDir, dirInfo.Mode()); err != nil {
+		return fmt.Errorf("error setting directory mode for %q: %w", dstDir, err)
+	}
+
+	if err := copyDirectoryContents(srcDir, dstDir); err != nil {
+		return err
+	}
+
+	if err := os.Chtimes(dstDir, dirInfo.ModTime(), dirInfo.ModTime()); err != nil {
+		return fmt.Errorf("error setting directory times for %q: %w", dstDir, err)
+	}
+
+	return nil
+}
+
+func copyRegularFile(srcPath, dstPath string, srcInfo os.FileInfo) error {
+	inputFile, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("error opening source file %q: %w", srcPath, err)
+	}
+	defer inputFile.Close()
+
+	outputFile, err := os.OpenFile(dstPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, srcInfo.Mode().Perm())
+	if err != nil {
+		return fmt.Errorf("error creating destination file %q: %w", dstPath, err)
+	}
+
+	defer func() {
+		if outputFile != nil {
+			outputFile.Close()
+		}
+	}()
+
+	if _, err := io.Copy(outputFile, inputFile); err != nil {
+		return fmt.Errorf("error copying file data from %q to %q: %w", srcPath, dstPath, err)
+	}
+
+	if err := outputFile.Chmod(srcInfo.Mode()); err != nil {
+		return fmt.Errorf("error setting file mode for %q: %w", dstPath, err)
+	}
+
+	if err := outputFile.Sync(); err != nil {
+		return fmt.Errorf("error syncing file %q: %w", dstPath, err)
+	}
+
+	if err := outputFile.Close(); err != nil {
+		return fmt.Errorf("error closing file %q: %w", dstPath, err)
+	}
+	outputFile = nil
+
+	if err := os.Chtimes(dstPath, srcInfo.ModTime(), srcInfo.ModTime()); err != nil {
+		return fmt.Errorf("error setting file times for %q: %w", dstPath, err)
 	}
 
 	return nil

@@ -67,6 +67,15 @@ go build -ldflags="-s -w" symlink2file.go
 This will create an executable named `symlink2file` in the current directory.
 
 
+For cross-platform compatibility, you can use the `GOOS` and `GOARCH` environment variables to specify the target platform. For example:
+
+```bash
+GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" symlink2file.go -o symlink2file-linux-amd64
+GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" symlink2file.go -o symlink2file-linux-arm64
+GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" symlink2file.go -o symlink2file-darwin-amd64
+GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" symlink2file.go -o symlink2file-darwin-arm64
+```
+
 ### Run tests
 
 Tests are written using [Bats](https://github.com/bats-core/bats-core) and can be run with the following commands:

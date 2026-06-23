@@ -9,7 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +51,26 @@ func coloredPrintf(color string, format string, a ...interface{}) {
 		fmt.Printf(color+format+resetColor, a...)
 	} else {
 		fmt.Printf(format, a...)
+	}
+}
+
+func startWorkingSpinner() func() {
+	if !isTerminal(os.Stderr) {
+		return func() {}
+	}
+
+	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
+	s.Suffix = " Processing symlinks..."
+	s.Color("green")
+	s.Start()
+
+	stopped := false
+	return func() {
+		if stopped {
+			return
+		}
+		s.Stop()
+		stopped = true
 	}
 }
 
@@ -103,13 +125,17 @@ var rootCmd = &cobra.Command{
 
 		// Process symlinks
 		processedSymlinks := make(map[string]bool)
+		stopSpinner := startWorkingSpinner()
+		defer stopSpinner()
 		if err := processSymlinks(ctx, targetDir, &noBackup, &noRecurse, brokenSymlinks, processedSymlinks); err != nil {
+			stopSpinner()
 			if ctx.Err() != nil {
 				coloredPrintf(blueColor, "Operation cancelled.\n")
 				os.Exit(130) // Exit code for interrupted by signal
 			}
 			return fmt.Errorf("processing symlinks: %w", err)
 		}
+		stopSpinner()
 
 		// Count the number of processed symlinks
 		count := 0
